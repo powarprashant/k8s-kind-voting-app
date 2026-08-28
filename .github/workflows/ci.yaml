@@ -165,4 +165,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # Reuses the layers built above - this step is near-instant.
           cache-from: type=gha,scope=${{ matrix.service }}
+          # Plain image, no SLSA provenance/SBOM attestation manifests
+          # (they need extra registry scope and aren't needed here).
+          provenance: false
+          sbom: false
           # platforms: linux/amd64,linux/arm64   # uncomment for multi-arch
