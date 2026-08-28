@@ -88,11 +88,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Build the image name from the secret, stripping any stray
+      # whitespace/newlines and forcing lowercase so the tag is always valid.
+      - name: Resolve Docker Hub image name
+        id: img
+        env:
+          RAW_NS: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          ns="$(printf '%s' "$RAW_NS" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+          echo "name=${ns}/${IMAGE_PREFIX}${{ matrix.service }}" >> "$GITHUB_OUTPUT"
+
       - name: Derive image tags
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_PREFIX }}${{ matrix.service }}
+          images: ${{ steps.img.outputs.name }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
