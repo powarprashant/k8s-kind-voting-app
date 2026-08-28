@@ -88,15 +88,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build the image name from the secret, stripping any stray
-      # whitespace/newlines and forcing lowercase so the tag is always valid.
+      # Docker Hub namespace for the image. Do NOT reuse the login secret here -
+      # that may be an email (fine for `docker login`, invalid in an image name).
+      # Defaults to the GitHub owner; override with repo variable DOCKERHUB_NAMESPACE
+      # if your Docker Hub user/org name is different.
       - name: Resolve Docker Hub image name
         id: img
         env:
-          RAW_NS: ${{ secrets.DOCKERHUB_USERNAME }}
+          NS: ${{ vars.DOCKERHUB_NAMESPACE || github.repository_owner }}
         run: |
-          ns="$(printf '%s' "$RAW_NS" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+          ns="$(printf '%s' "$NS" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
           echo "name=${ns}/${IMAGE_PREFIX}${{ matrix.service }}" >> "$GITHUB_OUTPUT"
+          echo "Image name: ${ns}/${IMAGE_PREFIX}${{ matrix.service }}"
 
       - name: Derive image tags
         id: meta
@@ -106,8 +109,6 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
-            type=ref,event=branch
-            type=ref,event=pr
 
       # --- 2. Build (load into the runner's Docker so we can scan it) ---
       - name: Build image (local, for scanning)
