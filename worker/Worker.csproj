@@ -6,9 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="StackExchange.Redis" Version="2.2.4" />
-    <PackageReference Include="Npgsql" Version="4.1.9" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+    <!-- Npgsql 8.x: matches net8.0 and no longer pulls in the vulnerable
+         System.Drawing.Common (CVE-2021-24112) that Npgsql 4.x required -->
+    <PackageReference Include="Npgsql" Version="8.0.6" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>
