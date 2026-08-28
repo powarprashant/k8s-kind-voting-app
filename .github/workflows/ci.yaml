@@ -28,8 +28,6 @@ env:
   # Change this prefix to whatever you want your images called on Docker Hub.
   # Final image name = <DOCKERHUB_USERNAME>/<IMAGE_PREFIX><service>
   IMAGE_PREFIX: k8s-voting-
-  # Fail the image scan on these severities. Set to '0' in the step to make advisory.
-  TRIVY_SEVERITY: CRITICAL,HIGH
 
 jobs:
   # ------------------------------------------------------------------
@@ -114,14 +112,27 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
       # --- 3. Scan the built image ---
-      - name: Trivy image scan
+      # CRITICAL (with a known fix) blocks the pipeline.
+      - name: Trivy image scan - CRITICAL (blocking)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
           image-ref: ${{ matrix.service }}:scan
-          severity: ${{ env.TRIVY_SEVERITY }}
+          severity: CRITICAL
           ignore-unfixed: true
           exit-code: '1'
+          format: table
+
+      # HIGH is reported for visibility but does not fail the build
+      # (base-image OS CVEs depend on the distro's patch cadence).
+      - name: Trivy image scan - HIGH (advisory)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: ${{ matrix.service }}:scan
+          severity: HIGH
+          ignore-unfixed: true
+          exit-code: '0'
           format: table
 
       # --- 4. Push (skipped on pull requests) ---

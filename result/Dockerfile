@@ -1,7 +1,8 @@
-FROM node:18-slim
+FROM node:22-slim
 
-# add curl for healthcheck
+# add curl for healthcheck; also apply latest OS security patches
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends curl tini && \
     rm -rf /var/lib/apt/lists/*
 
