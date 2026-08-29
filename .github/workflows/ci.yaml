@@ -28,6 +28,7 @@ env:
   # Change this prefix to whatever you want your images called on Docker Hub.
   # Final image name = <DOCKERHUB_USERNAME>/<IMAGE_PREFIX><service>
   IMAGE_PREFIX: k8s-voting-
+  IMAGE_NAMESPACE: prashantkpowar
 
 jobs:
   # ------------------------------------------------------------------
