@@ -25,10 +25,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Change this prefix to whatever you want your images called on Docker Hub.
-  # Final image name = <DOCKERHUB_USERNAME>/<IMAGE_PREFIX><service>
-  IMAGE_PREFIX: k8s-voting-
+  # Final image name = <IMAGE_NAMESPACE>/<IMAGE_PREFIX><service>
+  # IMAGE_NAMESPACE must be your Docker Hub username/org (not your GitHub name).
   IMAGE_NAMESPACE: prashantkpowar
+  IMAGE_PREFIX: k8s-voting-
 
 jobs:
   # ------------------------------------------------------------------
@@ -89,14 +89,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Docker Hub namespace for the image. Do NOT reuse the login secret here -
-      # that may be an email (fine for `docker login`, invalid in an image name).
-      # Defaults to the GitHub owner; override with repo variable DOCKERHUB_NAMESPACE
-      # if your Docker Hub user/org name is different.
+      # Build the image name from IMAGE_NAMESPACE (your Docker Hub account),
+      # stripping stray whitespace and forcing lowercase so the tag is valid.
+      # A repo variable DOCKERHUB_NAMESPACE, if set, wins.
       - name: Resolve Docker Hub image name
         id: img
         env:
-          NS: ${{ vars.DOCKERHUB_NAMESPACE || github.repository_owner }}
+          NS: ${{ vars.DOCKERHUB_NAMESPACE || env.IMAGE_NAMESPACE }}
         run: |
           ns="$(printf '%s' "$NS" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
           echo "name=${ns}/${IMAGE_PREFIX}${{ matrix.service }}" >> "$GITHUB_OUTPUT"
