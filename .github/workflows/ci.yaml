@@ -1,15 +1,4 @@
 name: CI
-
-# Single CI pipeline for the voting app:
-#   1. code-scan  -> Trivy filesystem scan (vulns, secrets, misconfig) on the source
-#   2. build      -> docker build each service image (vote / result / worker)
-#   3. image-scan -> Trivy scan of the built image (fails on CRITICAL/HIGH)
-#   4. push       -> push to Docker Hub (only on push to main, not on PRs)
-#
-# Required repository secrets (Settings -> Secrets and variables -> Actions):
-#   DOCKERHUB_USERNAME  - your Docker Hub username
-#   DOCKERHUB_TOKEN     - a Docker Hub access token (Account Settings -> Security)
-
 on:
   push:
     branches: ['main']
@@ -25,22 +14,18 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Final image name = <IMAGE_NAMESPACE>/<IMAGE_PREFIX><service>
-  # IMAGE_NAMESPACE must be your Docker Hub username/org (not your GitHub name).
+
   IMAGE_NAMESPACE: prashantkpowar
-  IMAGE_PREFIX: k8s-voting-
+  IMAGE_PREFIX: k8s-voting- 
 
 jobs:
-  # ------------------------------------------------------------------
-  # 1. Static code / dependency / secret scan of the repository
-  # ------------------------------------------------------------------
+
   code-scan:
     name: Code scan (Trivy fs)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Dependency vulnerabilities + hard-coded secrets -> these BLOCK the pipeline.
+    
       - name: Trivy scan - vulnerabilities & secrets (blocking)
         uses: aquasecurity/trivy-action@master
         with:
@@ -52,8 +37,7 @@ jobs:
           exit-code: '1'
           format: table
 
-      # IaC / Dockerfile hardening findings -> reported for visibility, do NOT block.
-      # (k8s manifests here are demo-grade; harden them before any production use.)
+
       - name: Trivy scan - misconfiguration (advisory)
         uses: aquasecurity/trivy-action@master
         with:
@@ -63,9 +47,7 @@ jobs:
           exit-code: '0'
           format: table
 
-  # ------------------------------------------------------------------
-  # 2-4. Build -> scan image -> push, once per service via a matrix
-  # ------------------------------------------------------------------
+
   build-scan-push:
     name: Build / Scan / Push (${{ matrix.service }})
     needs: code-scan
@@ -89,9 +71,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build the image name from IMAGE_NAMESPACE (your Docker Hub account),
-      # stripping stray whitespace and forcing lowercase so the tag is valid.
-      # A repo variable DOCKERHUB_NAMESPACE, if set, wins.
       - name: Resolve Docker Hub image name
         id: img
         env:
@@ -110,7 +89,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
 
-      # --- 2. Build (load into the runner's Docker so we can scan it) ---
+     
       - name: Build image (local, for scanning)
         uses: docker/build-push-action@v6
         with:
@@ -122,8 +101,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
-      # --- 3. Scan the built image ---
-      # CRITICAL (with a known fix) blocks the pipeline.
+
       - name: Trivy image scan - CRITICAL (blocking)
         uses: aquasecurity/trivy-action@master
         with:
@@ -134,8 +112,7 @@ jobs:
           exit-code: '1'
           format: table
 
-      # HIGH is reported for visibility but does not fail the build
-      # (base-image OS CVEs depend on the distro's patch cadence).
+
       - name: Trivy image scan - HIGH (advisory)
         uses: aquasecurity/trivy-action@master
         with:
@@ -146,7 +123,6 @@ jobs:
           exit-code: '0'
           format: table
 
-      # --- 4. Push (skipped on pull requests) ---
       - name: Log in to Docker Hub
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -165,8 +141,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # Reuses the layers built above - this step is near-instant.
           cache-from: type=gha,scope=${{ matrix.service }}
-          # Plain image, no SLSA provenance/SBOM attestation manifests
-          # (they need extra registry scope and aren't needed here).
+
           provenance: false
           sbom: false
-          # platforms: linux/amd64,linux/arm64   # uncomment for multi-arch
+
