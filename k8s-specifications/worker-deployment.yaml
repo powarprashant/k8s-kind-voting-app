@@ -15,5 +15,5 @@ spec:
         app: worker
     spec:
       containers:
-      - image: 637423240208.dkr.ecr.us-east-1.amazonaws.com/demo-app-worker
+      - image: 730335639260.dkr.ecr.us-east-1.amazonaws.com/demo-app-worker:latest
         name: worker
