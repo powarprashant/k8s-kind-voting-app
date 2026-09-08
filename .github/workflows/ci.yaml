@@ -13,12 +13,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  AWS_REGION: us-east-1
-  ECR_REGISTRY: 590183746102.dkr.ecr.us-east-1.amazonaws.com
-  # One repository per service: demo-app-vote, demo-app-result, demo-app-worker
-  ECR_REPO_PREFIX: demo-app-
-
 jobs:
 
   code-scan:
@@ -53,9 +47,6 @@ jobs:
     name: Build / Scan / Push (${{ matrix.service }})
     needs: code-scan
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write   # required to request the GitHub OIDC token for AWS
     strategy:
       fail-fast: false
       matrix:
@@ -108,30 +99,34 @@ jobs:
           exit-code: '0'
           format: table
 
-      - name: Configure AWS credentials (OIDC)
+      - name: Configure AWS credentials
         if: github.event_name != 'pull_request'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Log in to Amazon ECR
+        id: login-ecr
         if: github.event_name != 'pull_request'
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Ensure ECR repository exists
         if: github.event_name != 'pull_request'
+        env:
+          REPO: ${{ secrets.ECR_REPOSITORY }}-${{ matrix.service }}
         run: |
-          repo="${ECR_REPO_PREFIX}${{ matrix.service }}"
-          aws ecr describe-repositories --repository-names "$repo" >/dev/null 2>&1 \
-            || aws ecr create-repository --repository-name "$repo" \
+          aws ecr describe-repositories --repository-names "$REPO" >/dev/null 2>&1 \
+            || aws ecr create-repository --repository-name "$REPO" \
                  --image-scanning-configuration scanOnPush=true
 
       - name: Derive image tags
         id: meta
+        if: github.event_name != 'pull_request'
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO_PREFIX }}${{ matrix.service }}
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}-${{ matrix.service }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short

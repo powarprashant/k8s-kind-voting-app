@@ -78,25 +78,21 @@ requests to `main`:
 2. **Build / scan / push** — for `vote`, `result`, and `worker` in parallel:
    build the image, run a Trivy image scan (fails on `CRITICAL`, `HIGH` is
    advisory), and on non-PR events push to Amazon ECR as
-   `590183746102.dkr.ecr.us-east-1.amazonaws.com/demo-app-<service>` tagged
-   `latest` and `sha-<short>`.
+   `<registry>/<ECR_REPOSITORY>-<service>` tagged `latest` and `sha-<short>`
+   (e.g. `demo-app-vote`, `demo-app-result`, `demo-app-worker`).
 
-### AWS setup required
+### Required GitHub secrets
 
-The push job assumes an IAM role via GitHub OIDC (no static keys).
+| Secret | Purpose |
+|--------|---------|
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | IAM user credentials for the push |
+| `AWS_REGION` | e.g. `us-east-1` |
+| `ECR_REPOSITORY` | base repo name, e.g. `demo-app`; the workflow appends `-<service>` |
 
-- Create a GitHub OIDC identity provider in account `590183746102`
-  (`token.actions.githubusercontent.com`, audience `sts.amazonaws.com`).
-- Create an IAM role trusted by that provider for
-  `repo:powarprashant/k8s-kind-voting-app:*`, with permissions for
-  `ecr:GetAuthorizationToken` (resource `*`), the ECR push actions
-  (`ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`,
-  `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`, `ecr:PutImage`,
-  `ecr:BatchGetImage`, `ecr:GetDownloadUrlForLayer`), and — for the
-  auto-create step — `ecr:DescribeRepositories` and `ecr:CreateRepository`.
-- Add the role ARN as the repository **variable** `AWS_ROLE_ARN`.
-
-Region, registry, and repo prefix are set in `env:` at the top of the workflow.
-The `demo-app-vote` / `demo-app-result` / `demo-app-worker` repositories are
-created automatically on first run if the role has `ecr:CreateRepository`;
-otherwise create them manually and drop that step.
+The IAM user needs `ecr:GetAuthorizationToken` (resource `*`), the ECR push
+actions (`ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`,
+`ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`, `ecr:PutImage`,
+`ecr:BatchGetImage`, `ecr:GetDownloadUrlForLayer`), and — for the auto-create
+step — `ecr:DescribeRepositories` and `ecr:CreateRepository`. The per-service
+repositories are created on first run if `ecr:CreateRepository` is allowed;
+otherwise create them manually and drop the "Ensure ECR repository exists" step.
