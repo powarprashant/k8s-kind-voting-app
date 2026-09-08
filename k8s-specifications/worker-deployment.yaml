@@ -1,6 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namer: worker
+  namespace: application
   labels:
     app: worker
   name: worker
@@ -15,5 +17,5 @@ spec:
         app: worker
     spec:
       containers:
-      - image: dockersamples/examplevotingapp_worker
+      - image: 637423240208.dkr.ecr.us-east-1.amazonaws.com/637423240208.dkr.ecr.us-east-1.amazonaws.com/demo-app-worker
         name: worker

@@ -11,11 +11,13 @@ spec:
       app: vote
   template:
     metadata:
+    namer: vote
+    namespace: application
       labels:
         app: vote
     spec:
       containers:
-      - image: dockersamples/examplevotingapp_vote
+      - image: 637423240208.dkr.ecr.us-east-1.amazonaws.com/637423240208.dkr.ecr.us-east-1.amazonaws.com/demo-app-vote
         name: vote
         ports:
         - containerPort: 80

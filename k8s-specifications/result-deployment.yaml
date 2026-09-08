@@ -1,6 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namer: result
+  namespace: application
   labels:
     app: result
   name: result
@@ -15,7 +17,7 @@ spec:
         app: result
     spec:
       containers:
-      - image: dockersamples/examplevotingapp_result
+      - image: 637423240208.dkr.ecr.us-east-1.amazonaws.com/637423240208.dkr.ecr.us-east-1.amazonaws.com/demo-app-result
         name: result
         ports:
         - containerPort: 80
